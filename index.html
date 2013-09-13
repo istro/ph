@@ -1,0 +1,190 @@
+<html>
+  <head>
+    <!-- I added jquery to make syntax simpler -->
+    <script src='http://code.jquery.com/jquery-1.10.1.js'></script>
+
+    <style>
+      #results {
+        position: absolute;
+        top: 10vh;
+        width: 100%;
+      }
+
+      #search {
+        margin: 30vh auto;
+        display: inline-block;
+      }
+
+      #search_box {
+        display: block;
+        margin: 0 auto;
+      }
+
+      #song_list table{
+        width: 100%;
+        text-align: center;
+      }
+
+      #suggestions {
+        border: 1px dashed gray;
+        display:inline-block;
+        background: white;
+      }
+
+      #suggestions ul{
+        margin: 0;
+        padding: 5px;
+        list-style-type: none;
+        z-index: 5;
+      }
+
+      #wrapper {
+        text-align: center;
+      }
+
+      .transition {
+        -moz-transition:margin-top 2s;
+        -webkit-transition:margin-top 2s;
+        -o-transition:margin-top 2s;
+        transition:margin-top 2s;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id='wrapper'>
+      <div id='search' class='transition'>
+        <input id="search_box" placeholder="Search for artists..."/>
+        <div id='suggestions' style="display:none"></div>
+      </div>
+      <div id='results' style="display:none">
+        <h2 id="title">loading...</h2>
+        <div id='song_list'></div>
+      </div>
+    </div>
+  </body>
+
+
+  <script>
+    $(function(){
+      suggestions = $('#suggestions');
+      search_box = $("#search_box");
+      search = document.getElementById('search');
+      results = $('#results');
+      song_list = $('#song_list')
+
+      // on keyup make a query to itunes and populate suggestions
+
+      search_box.bind('keyup', function(e){
+        results.fadeOut();
+        suggestions.fadeIn();
+        // if backspace is pressed, make sure to hide suggestions if search box empty
+        if(e.keyCode == 8 && search_box.val() == ""){
+          suggestions.fadeOut();
+        }else if(e.keyCode == 13){
+          get_songs();
+          show_results();
+        } else {
+          ask_apple();
+        };
+      });
+
+      // when enter is hit or one of the suggestions clicked - show results div and populate it
+
+      suggestions.bind('click', function(e){ 
+        search_box.val(e.target.innerHTML);
+        get_songs();
+        show_results();
+      });
+
+      ask_apple = function(){
+        $.ajax("http://itunes.apple.com/search", {
+          dataType: "jsonp",
+          crossDomain: true,
+          data: {
+            country: "US",
+            media: "music",
+            entity: "musicArtist",
+            term: $("#search_box").val(),
+            limit: 15
+          },
+          success: populateSuggestions
+        })
+      };
+
+      populateSuggestions = function(response){
+        var apple = response.results,
+            new_suggestions = "<ul>",
+            next = '';
+        for (var i=0; i < apple.length; i++){
+          next = '<li>'+apple[i].artistName+"</li>";
+          new_suggestions += next;
+        };
+        new_suggestions += "</ul>"
+        suggestions.html(new_suggestions);
+      }
+
+      get_songs = function(){
+        $.ajax("http://itunes.apple.com/search", {
+          dataType: "jsonp",
+          crossDomain: true,
+          data: {
+            country: "US",
+            media: "music",
+            entity: "song",
+            term: $("#search_box").val(),
+            limit: 20
+          },
+          success: populateResults
+        })        
+      }
+
+      populateResults = function(response){
+        // I don't think this is the best way to populate the page with results - but it will do for now...
+
+        var results = response.results,
+            content = "<table><tr><th>Cover</th><th>Song name</th><th>Album</th><th>Preview</th></tr>";
+        document.getElementsByTagName('h2')[0].innerHTML = "Here are top 25 songs for "+results[0].artistName;
+
+        for(var i=0; i<results.length; i++){
+          content += "<tr><td><img src="+results[i].artworkUrl60+"></td><td>"+results[i].trackName+"</td><td>"+results[i].collectionName+"</td><td><audio src="+results[i].previewUrl+" controls='controls'></td></tr>"
+        }
+        content += "</table>"
+
+        song_list.html(content);
+      }
+
+      show_results = function(){
+        search.style.marginTop = '5vh';
+        suggestions.fadeOut();
+        setTimeout(function(){
+          results.fadeIn();
+        }, 1000);
+      }
+
+    });
+
+  </script>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
